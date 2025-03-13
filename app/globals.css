@@ -1,0 +1,193 @@
+/* Import statements must come first */
+@import "tailwindcss";
+@import "./retro-terminal.css";
+
+:root {
+  --background: #000000;
+  --foreground: #ea9ae5; /* Pink color for retro terminal look */
+  --gray-100: #f5f5f5;
+  --gray-200: #e5e5e5;
+  --gray-300: #d4d4d4;
+  --gray-400: #a3a3a3;
+  --gray-500: #737373;
+  --gray-600: #525252;
+  --gray-700: #404040;
+  --gray-800: #262626;
+  --gray-900: #171717;
+  --border-color: #ea9ae5; /* Pink border */
+  --message-user: #221a21; /* Dark pink for user messages */
+  --message-ai: #150e14; /* Darker pink for AI messages */
+  --button-bg: #331a31; /* Pink-tinted button */
+  --button-hover: #442a42; /* Lighter pink for hover */
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-vt323);
+  --font-mono: var(--font-vt323);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  margin: 0;
+  font-family: 'VT323', monospace !important;
+  font-size: 16px;
+  line-height: 1.5;
+  text-shadow: 0 0 5px rgba(234, 154, 229, 0.6);
+}
+
+/* Vercel-like button styles */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 0 16px;
+  height: 36px;
+  background-color: var(--button-bg);
+  color: white;
+  border: 1px solid var(--border-color);
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+.btn:hover {
+  background-color: var(--button-hover);
+}
+
+.btn:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1);
+}
+
+/* Input styles */
+.input {
+  background-color: var(--message-user);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: white;
+  padding: 8px 12px;
+  font-size: 14px;
+  transition: border-color 0.2s;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--gray-500);
+}
+
+/* Smooth scrolling for chat */
+.overflow-y-auto {
+  scrollbar-width: thin;
+  scrollbar-color: var(--gray-600) var(--gray-900);
+}
+
+.overflow-y-auto::-webkit-scrollbar {
+  width: 6px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-track {
+  background: #111;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb {
+  background-color: #555;
+  border-radius: 6px;
+}
+
+/* Ensure full dark mode */
+html {
+  background-color: black;
+  color-scheme: dark;
+}
+
+/* Ensure retro font is applied */
+.retro-font {
+  font-family: 'VT323', monospace !important;
+}
+
+/* Win animation effects */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+/* Typing cursor animation */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.animate-pulse {
+  animation: blink 1s infinite;
+}
+
+.animate-blink {
+  animation: blink 0.8s step-end infinite;
+}
+
+/* Scanlines effect for terminal */
+.bg-scanlines {
+  background-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(32, 32, 32, 0.3) 50%,
+    transparent 100%
+  );
+  background-size: 100% 4px;
+  background-repeat: repeat;
+}
+
+/* Ensure proper ASCII art display */
+pre {
+  font-family: 'Courier New', monospace !important;
+  line-height: 1.2;
+  letter-spacing: 0;
+  white-space: pre;
+  overflow-x: auto;
+  tab-size: 4;
+}
+
+/* Ensure consistent character width for ASCII art */
+.ascii-art {
+  font-variant-ligatures: none;
+  font-feature-settings: "liga" 0, "calt" 0;
+  font-family: 'Courier New', monospace !important;
+  display: inline-block;
+  text-align: left;
+  width: auto;
+  margin: 0;
+  padding: 0;
+  letter-spacing: 0;
+  word-spacing: 0;
+  -webkit-font-smoothing: none;
+  -moz-osx-font-smoothing: none;
+  line-height: 1.1 !important;
+  font-size: 1em;
+  transform: scale(1, 1);
+  text-rendering: geometricPrecision;
+}
+
+/* Specific styling for CHECKMATE logo */
+.checkmate-logo {
+  text-shadow: 0 0 8px var(--foreground);
+  font-weight: bold;
+  letter-spacing: 0;
+  text-align: left;
+  margin: 0;
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  font-family: 'Courier New', monospace !important;
+  white-space: pre;
+  line-height: 1.2;
+  font-size: 0.8em;
+  transform: scale(1, 1);
+}

@@ -1,0 +1,6 @@
+/* Fallback monospace fonts for retro terminal look */
+@import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+
+.retro-font {
+  font-family: 'VT323', monospace !important;
+} 

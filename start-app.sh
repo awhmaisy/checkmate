@@ -13,13 +13,6 @@ for port in 3000 3001 3002 3003 3004 3005; do
   fi
 done
 
-# Check if .env.local exists
-if [ ! -f .env.local ]; then
-  echo "Creating .env.local file..."
-  echo "XAI_API_KEY=your-api-key-here" > .env.local
-  echo "Please edit .env.local to add your actual API key"
-fi
-
 # Start the application
 echo "Starting the application..."
 npm run dev

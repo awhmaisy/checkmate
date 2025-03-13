@@ -1,11 +1,16 @@
 checkmate.. always and forever.
 
-### set up your API Key
+A mysterious chat experience that challenges users to prove their humanity.
 
-u need to first, create a `.env.local` file in the root directory with your xAI API key:
+### Getting Started
 
-```
-XAI_API_KEY=your_xai_api_key_here
+Simply visit the deployed application at [your-deployment-url] to start chatting.
+
+Or run it locally:
+
+```bash
+npm install
+npm run dev
 ```
 
 das it! first public working @source-os iteration <3

@@ -100,8 +100,8 @@ export async function POST(request: Request) {
     if (!process.env.XAI_API_KEY) {
       console.log('API key is missing, using fallback response');
       return NextResponse.json({ 
-        reply: "i'm having trouble connecting right now. but i can still hear you.",
-        error: "API key is missing"
+        reply: getFallbackResponse(),
+        error: "Server configuration issue - please try again later"
       });
     }
 

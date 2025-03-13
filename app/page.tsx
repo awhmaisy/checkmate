@@ -9,6 +9,7 @@ export default function Home() {
   const [gameWon, setGameWon] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
   
   // Animation states for win sequence
   const [showWinAnimation, setShowWinAnimation] = useState(false);
@@ -25,19 +26,37 @@ export default function Home() {
   // Add state for color scheme
   const [colorScheme, setColorScheme] = useState("pink");
   
+  // Detect mobile device
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    
+    // Check on mount
+    checkMobile();
+    
+    // Add resize listener
+    window.addEventListener('resize', checkMobile);
+    
+    // Cleanup
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+  
   // Initialize messages after component mounts (client-side only)
   useEffect(() => {
-    setMessages([
-      { role: "ai", content: "Terminal initialized. Connection established." },
-      { role: "ai", content: "Welcome to the system. Type 'help' for available commands." },
-    ]);
-    
-    // Auto-scroll to bottom when messages are initialized
-    setTimeout(() => {
-      const container = document.getElementById('message-container');
-      if (container) container.scrollTop = container.scrollHeight;
-    }, 100);
-  }, []);
+    if (!isMobile) {
+      setMessages([
+        { role: "ai", content: "Terminal initialized. Connection established." },
+        { role: "ai", content: "Welcome to the system. Type 'help' for available commands." },
+      ]);
+      
+      // Auto-scroll to bottom when messages are initialized
+      setTimeout(() => {
+        const container = document.getElementById('message-container');
+        if (container) container.scrollTop = container.scrollHeight;
+      }, 100);
+    }
+  }, [isMobile]);
   
   // Auto-scroll to bottom when new messages arrive and maintain focus
   useEffect(() => {
@@ -559,6 +578,49 @@ export default function Home() {
       </div>
     );
   };
+
+  if (isMobile) {
+    return (
+      <div className="h-screen w-screen flex flex-col items-center justify-center bg-black overflow-hidden">
+        <div className="text-center crt-text text-[var(--crt-foreground)] text-xl font-bold animate-pulse mb-8">
+          @SOURCE_OS <br /> MOBILE ACCESS RESTRICTED
+        </div>
+        
+        {/* Social Links */}
+        <div className="flex flex-col items-center space-y-4 mt-4">
+          <a 
+            href="https://twitter.com/awhmaisy" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="crt-text text-[var(--crt-foreground)] hover:opacity-75 transition-opacity"
+          >
+            <div className="text-2xl mb-1">✕</div>
+            <div className="text-sm">@awhmaisy</div>
+          </a>
+          
+          <a 
+            href="https://awhmaisy.com" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="crt-text text-[var(--crt-foreground)] hover:opacity-75 transition-opacity"
+          >
+            <div className="text-2xl mb-1">♥</div>
+            <div className="text-sm">site</div>
+          </a>
+          
+          <a 
+            href="https://github.com/awhmaisy/checkmate" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="crt-text text-[var(--crt-foreground)] hover:opacity-75 transition-opacity"
+          >
+            <div className="text-2xl mb-1">⌥</div>
+            <div className="text-sm">repo</div>
+          </a>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`flex flex-col h-screen w-full bg-black text-white font-mono crt-screen crt-curved-screen crt-${colorScheme} crt-terminal`}>

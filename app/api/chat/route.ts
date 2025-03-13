@@ -98,10 +98,11 @@ export async function POST(request: Request) {
 
     // Check if API key is missing and return a fallback response
     if (!process.env.XAI_API_KEY) {
-      console.log('API key is missing, using fallback response');
+      console.error('API key is missing in environment variables');
       return NextResponse.json({ 
-        reply: getFallbackResponse(),
-        error: "Server configuration issue - please try again later"
+        reply: "i seem to be having trouble connecting. please make sure the server is configured correctly.",
+        error: "Missing API key in server configuration",
+        debug: process.env.NODE_ENV === 'development' ? 'Please set XAI_API_KEY in .env.local file' : undefined
       });
     }
 

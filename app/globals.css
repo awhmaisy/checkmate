@@ -191,3 +191,66 @@ pre {
   font-size: 0.8em;
   transform: scale(1, 1);
 }
+
+/* Mobile-specific styles */
+@media (max-width: 768px) {
+  .crt-text {
+    text-shadow: 0 0 5px var(--crt-foreground),
+                 0 0 10px var(--crt-foreground),
+                 0 0 15px var(--crt-foreground);
+    letter-spacing: 2px;
+  }
+
+  /* Social links styling */
+  a.crt-text {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0.5rem;
+    text-decoration: none;
+    position: relative;
+  }
+
+  a.crt-text::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    width: 0;
+    height: 1px;
+    background: var(--crt-foreground);
+    transition: all 0.3s ease;
+    box-shadow: 0 0 5px var(--crt-foreground),
+                0 0 10px var(--crt-foreground);
+  }
+
+  a.crt-text:hover::after {
+    width: 80%;
+    left: 10%;
+  }
+
+  /* Enhanced glow effect for icons */
+  a.crt-text .text-2xl {
+    text-shadow: 0 0 8px var(--crt-foreground),
+                 0 0 15px var(--crt-foreground),
+                 0 0 20px var(--crt-foreground);
+    transition: text-shadow 0.3s ease;
+  }
+
+  a.crt-text:hover .text-2xl {
+    text-shadow: 0 0 12px var(--crt-foreground),
+                 0 0 20px var(--crt-foreground),
+                 0 0 30px var(--crt-foreground);
+  }
+}
+
+/* Animation for the pulsing effect */
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
+}
+
+.animate-pulse {
+  animation: pulse 2s infinite;
+}

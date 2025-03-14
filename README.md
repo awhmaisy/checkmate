@@ -9,3 +9,12 @@ welcome to the first public working @source-os iteration <3
 utilizes a crt display in admiration of [꒰ Swordfish90/cool-retro-term ꒱](https://github.com/Swordfish90/cool-retro-term).
 
 dis is really only prompting so.. simple but fun. try mobile versioin!
+
+const boxChars = {
+  topLeft: '╔',
+  topRight: '╗',
+  bottomLeft: '╚',
+  bottomRight: '╝',
+  horizontal: '═',
+  vertical: '║'
+};

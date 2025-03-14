@@ -4,7 +4,7 @@ import { applyAllCRTEffects, changeColorScheme } from "./crt-effects";
 
 export default function Home() {
   // State variables
-  const [messages, setMessages] = useState<{ role: string; content: string }[]>([]);
+  const [messages, setMessages] = useState<{ role: string; content: string; id?: number }[]>([]);
   const [input, setInput] = useState("");
   const [gameWon, setGameWon] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -25,6 +25,22 @@ export default function Home() {
   
   // Add state for color scheme
   const [colorScheme, setColorScheme] = useState("pink");
+  
+  // Add state for reset
+  const [isResetting, setIsResetting] = useState(false);
+  
+  // Add the new ASCII loader frames
+  const asciiLoader = [
+    '( •_•)︻デ═一',
+    '( -_•)︻デ═一',
+    '( •_•)︻デ═一',
+    '( -_•)︻デ═一 ---- ˖✧',
+    '( -_•)︻デ═一 ---- ✧˖°',
+    '( -_•)︻デ═一 ---- ˖✧⋆ﾟ⊹',
+    '( -_•)︻デ═一 ---- ✧˖°⋆ﾟ⊹',
+    '( -_•)︻デ═一 ---- ˖✧⋆ﾟ⊹⁎⁺˳✧༚',
+    '( -_•)︻デ═一 ---- ✧˖°⋆ﾟ⊹⁎⁺˳✧༚♡',
+  ];
   
   // Detect mobile device
   useEffect(() => {
@@ -579,6 +595,61 @@ export default function Home() {
     );
   };
 
+  // Handle chat reset with animation
+  const handleReset = async () => {
+    setIsResetting(true);
+    
+    // Show reset animation in a message
+    setMessages(prev => [...prev, { 
+      role: "ai", 
+      content: "initiating system reset..." 
+    }]);
+    
+    // Add loading animation message that will be updated
+    const loadingMessageId = Date.now();
+    setMessages(prev => [...prev, { 
+      role: "ai", 
+      content: asciiLoader[0],
+      id: loadingMessageId 
+    }]);
+    
+    let frame = 0;
+    const animationInterval = setInterval(() => {
+      setMessages(prev => prev.map(msg => 
+        msg.id === loadingMessageId 
+          ? { ...msg, content: asciiLoader[frame] }
+          : msg
+      ));
+      frame = (frame + 1) % asciiLoader.length;
+    }, 200);
+
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reset: true }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        // Clear interval and add final animation frame
+        clearInterval(animationInterval);
+        setMessages([
+          { role: "ai", content: asciiLoader[asciiLoader.length - 1] },
+          { role: "ai", content: data.reply }
+        ]);
+      }
+    } catch (error) {
+      console.error('Error resetting chat:', error);
+      clearInterval(animationInterval);
+      setMessages([
+        { role: "ai", content: "Error resetting chat. Please try again." }
+      ]);
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
   if (isMobile) {
     return (
       <div className="h-screen w-screen flex flex-col items-center justify-center bg-black overflow-hidden">
@@ -625,61 +696,91 @@ export default function Home() {
   return (
     <div className={`flex flex-col h-screen w-full bg-black text-white font-mono crt-screen crt-curved-screen crt-${colorScheme} crt-terminal`}>
       {/* Terminal Header */}
-      <div className="crt-terminal-header">
-        <div className="crt-terminal-title">SECURE CONNECTION - TERMINAL v1.0.3</div>
-        <div className="flex space-x-2">
-          <button 
-            onClick={() => setColorScheme("pink")} 
-            className={`w-4 h-4 rounded-full ${colorScheme === "pink" ? "ring-2 ring-[#ea9ae5]" : ""}`}
-            style={{ backgroundColor: "#ea9ae5" }}
-            aria-label="Pink color scheme"
-          />
-          <button 
-            onClick={() => setColorScheme("green")} 
-            className={`w-4 h-4 rounded-full ${colorScheme === "green" ? "ring-2 ring-[#00ff00]" : ""}`}
-            style={{ backgroundColor: "#00ff00" }}
-            aria-label="Green color scheme"
-          />
-          <button 
-            onClick={() => setColorScheme("amber")} 
-            className={`w-4 h-4 rounded-full ${colorScheme === "amber" ? "ring-2 ring-[#ffb000]" : ""}`}
-            style={{ backgroundColor: "#ffb000" }}
-            aria-label="Amber color scheme"
-          />
-          <button 
-            onClick={testApiRoute}
-            className="ml-4 px-2 py-1 bg-[var(--crt-foreground)] text-black text-xs rounded opacity-50 hover:opacity-100"
-          >
-            Test GET
-          </button>
-          <button 
-            onClick={testPostEndpoint}
-            className="px-2 py-1 bg-[var(--crt-foreground)] text-black text-xs rounded opacity-50 hover:opacity-100"
-          >
-            Test POST
-          </button>
-          <button 
-            onClick={addTestMessage}
-            className="px-2 py-1 bg-[var(--crt-foreground)] text-black text-xs rounded opacity-50 hover:opacity-100"
-          >
-            Add Test Msg
-          </button>
-          <button 
-            onClick={() => startWinAnimation()}
-            className="px-2 py-1 bg-[var(--crt-foreground)] text-black text-xs rounded opacity-50 hover:opacity-100"
-          >
-            Test Win Animation
-          </button>
+      <div className="crt-terminal-header px-4 py-2 min-h-[48px]">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="crt-terminal-title flex-shrink-0 text-sm whitespace-nowrap">
+            SECURE CONNECTION - TERMINAL v1.0.3
+          </div>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            {process.env.NODE_ENV === 'development' && (
+              <div className="flex flex-wrap items-center gap-2">
+                <button 
+                  onClick={testApiRoute}
+                  className="px-2 py-1 border border-[var(--crt-foreground)] text-[var(--crt-foreground)] hover:bg-[var(--crt-foreground)]/10 transition-colors text-xs"
+                >
+                  Test GET
+                </button>
+                <button 
+                  onClick={testPostEndpoint}
+                  className="px-2 py-1 border border-[var(--crt-foreground)] text-[var(--crt-foreground)] hover:bg-[var(--crt-foreground)]/10 transition-colors text-xs"
+                >
+                  Test POST
+                </button>
+                <button 
+                  onClick={addTestMessage}
+                  className="px-2 py-1 border border-[var(--crt-foreground)] text-[var(--crt-foreground)] hover:bg-[var(--crt-foreground)]/10 transition-colors text-xs"
+                >
+                  Test MSG
+                </button>
+                <button 
+                  onClick={() => startWinAnimation()}
+                  className="px-2 py-1 border border-[var(--crt-foreground)] text-[var(--crt-foreground)] hover:bg-[var(--crt-foreground)]/10 transition-colors text-xs"
+                >
+                  Test WIN
+                </button>
+              </div>
+            )}
+            
+            {/* Reset button */}
+            <button
+              onClick={handleReset}
+              disabled={isResetting}
+              className={`px-2 py-1 border border-[var(--crt-foreground)] text-[var(--crt-foreground)] hover:bg-[var(--crt-foreground)]/10 transition-colors flex items-center gap-1 text-xs ${isResetting ? 'opacity-50' : ''}`}
+              title="Reset chat"
+              aria-label="Reset chat"
+            >
+              <span>⟲</span>
+              <span>Reset</span>
+            </button>
+
+            {/* Color scheme buttons */}
+            <div className="flex flex-wrap items-center gap-2">
+              <button 
+                onClick={() => setColorScheme("pink")} 
+                className={`px-2 py-1 border border-[var(--crt-foreground)] text-[var(--crt-foreground)] hover:bg-[var(--crt-foreground)]/10 transition-colors text-xs flex items-center gap-1 ${colorScheme === "pink" ? 'bg-[var(--crt-foreground)]/10' : ''}`}
+                aria-label="Pink color scheme"
+              >
+                <span className="w-2 h-2 rounded-full bg-[#ea9ae5]"></span>
+                Pink
+              </button>
+              <button 
+                onClick={() => setColorScheme("green")} 
+                className={`px-2 py-1 border border-[var(--crt-foreground)] text-[var(--crt-foreground)] hover:bg-[var(--crt-foreground)]/10 transition-colors text-xs flex items-center gap-1 ${colorScheme === "green" ? 'bg-[var(--crt-foreground)]/10' : ''}`}
+                aria-label="Green color scheme"
+              >
+                <span className="w-2 h-2 rounded-full bg-[#00ff00]"></span>
+                Green
+              </button>
+              <button 
+                onClick={() => setColorScheme("amber")} 
+                className={`px-2 py-1 border border-[var(--crt-foreground)] text-[var(--crt-foreground)] hover:bg-[var(--crt-foreground)]/10 transition-colors text-xs flex items-center gap-1 ${colorScheme === "amber" ? 'bg-[var(--crt-foreground)]/10' : ''}`}
+                aria-label="Amber color scheme"
+              >
+                <span className="w-2 h-2 rounded-full bg-[#ffb000]"></span>
+                Amber
+              </button>
+            </div>
+          </div>
         </div>
       </div>
       
       {/* Terminal Body */}
-      <div className="flex-1 p-4 overflow-y-auto bg-black crt-scrollbar crt-terminal-body" id="message-container">
+      <div className="flex-1 p-4 overflow-y-auto overflow-x-hidden bg-black crt-scrollbar crt-terminal-body" id="message-container">
         <div className="w-full">
           {/* Terminal welcome message */}
           <div className="mb-4 crt-text">
             <div className="overflow-x-auto">
-              <pre className="font-mono text-xs sm:text-sm md:text-base ascii-art checkmate-logo">
+              <pre className="font-mono text-sm ascii-art checkmate-logo whitespace-pre-wrap break-words">
 {`
  ██████╗██╗  ██╗███████╗ ██████╗██╗  ██╗███╗   ███╗ █████╗ ████████╗███████╗
 ██╔════╝██║  ██║██╔════╝██╔════╝██║ ██╔╝████╗ ████║██╔══██╗╚══██╔══╝██╔════╝
@@ -701,14 +802,13 @@ export default function Home() {
           </div>
           {messages && messages.length > 0 ? (
             messages.map((msg, index) => {
-              console.log(`Rendering message ${index}:`, msg);
               return (
                 <div
                   key={index}
-                  className="mb-3"
+                  className="mb-3 break-words"
                 >
-                  <div className="flex items-start">
-                    <span className={`crt-prompt ${msg.role === "user" ? "crt-prompt-user" : "crt-prompt-ai"}`}>
+                  <div className="flex items-start flex-wrap gap-2">
+                    <span className={`crt-prompt whitespace-nowrap text-sm ${msg.role === "user" ? "crt-prompt-user" : "crt-prompt-ai"}`}>
                       {msg.role === "user" ? "user@terminal:~$ " : "source@terminal:~$ "}
                     </span>
                     <div
@@ -718,7 +818,7 @@ export default function Home() {
                           : "crt-message-ai text-[var(--crt-foreground-white)]"
                       }`}
                     >
-                      <span className="crt-text whitespace-pre-wrap">{msg.content}</span>
+                      <span className="crt-text whitespace-pre-wrap break-words">{msg.content}</span>
                     </div>
                   </div>
                 </div>
@@ -726,7 +826,7 @@ export default function Home() {
             })
           ) : (
             <div className="flex justify-center items-center h-full">
-              <span className="text-[var(--crt-foreground)] crt-text">No messages yet</span>
+              <span className="text-[var(--crt-foreground)] crt-text text-sm">No messages yet</span>
             </div>
           )}
           

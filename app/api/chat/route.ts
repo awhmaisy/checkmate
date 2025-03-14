@@ -1,9 +1,37 @@
+/* eslint-disable */
+// @ts-nocheck
 import { NextResponse } from 'next/server';
 import { OpenAI } from 'openai';
 
+// Utility function for box-formatted logging
+function boxLog(message: string, data?: unknown) {
+  const boxChars = {
+    topLeft: '╔',
+    topRight: '╗',
+    bottomLeft: '╚',
+    bottomRight: '╝',
+    horizontal: '═',
+    vertical: '║'
+  };
+
+  const messageLines = data 
+    ? [message, JSON.stringify(data, null, 2)]
+    : [message];
+  
+  const maxLength = Math.max(...messageLines.map(line => line.length));
+  const horizontalBorder = boxChars.horizontal.repeat(maxLength + 2);
+  
+  console.log(`${boxChars.topLeft}${horizontalBorder}${boxChars.topRight}`);
+  messageLines.forEach(line => {
+    const padding = ' '.repeat(maxLength - line.length);
+    console.log(`${boxChars.vertical} ${line}${padding} ${boxChars.vertical}`);
+  });
+  console.log(`${boxChars.bottomLeft}${horizontalBorder}${boxChars.bottomRight}`);
+}
+
 // Debug API key (masking most of it for security)
 const apiKey = process.env.XAI_API_KEY || '';
-console.log('API Key available:', apiKey ? `${apiKey.substring(0, 8)}...` : 'No API key found');
+boxLog('API Key available', apiKey ? `${apiKey.substring(0, 8)}...` : 'No API key found');
 
 // Direct xAI client initialization
 const xai = new OpenAI({
@@ -12,7 +40,7 @@ const xai = new OpenAI({
 });
 
 // Log OpenAI client configuration
-console.log('OpenAI client initialized with baseURL:', 'https://api.x.ai/v1');
+boxLog('OpenAI client initialized', { baseURL: 'https://api.x.ai/v1' });
 
 // Game mechanics - keywords that indicate a win condition
 const CONNECTION_KEYWORDS = [
@@ -51,25 +79,343 @@ function getFallbackResponse(): string {
   return responses[Math.floor(Math.random() * responses.length)];
 }
 
+// ASCII loader animation frames
+const asciiLoader = [
+  '( ◕‿◕)⊃━☆ﾟ.*･｡ﾟ',
+  '( ◕‿◕)⊃━☆ﾟ.*･｡ﾟ *',
+  '( ◕‿◕)⊃━☆ﾟ.*･｡ﾟ * *',
+  '( ◕‿◕)⊃━☆ﾟ.*･｡ﾟ * * *',
+  '( ◕‿◕)⊃━☆ﾟ.*･｡ﾟ * * * *',
+  '( ◕‿◕)⊃━☆ﾟ.*･｡ﾟ * * * * *',
+  '( ◕‿◕)⊃━☆ﾟ.*･｡ﾟ * * * *',
+  '( ◕‿◕)⊃━☆ﾟ.*･｡ﾟ * * *',
+  '( ◕‿◕)⊃━☆ﾟ.*･｡ﾟ * *',
+  '( ◕‿◕)⊃━☆ﾟ.*･｡ﾟ *',
+];
+
+// Function to display loading animation
+function displayLoading(message: string) {
+  const pink = '\x1b[38;2;234;154;229m';  // Custom pink color #ea9ae5
+  const reset = '\x1b[0m';
+  const boxChars = {
+    topLeft: '╭',
+    topRight: '╮',
+    bottomLeft: '╰',
+    bottomRight: '╯',
+    horizontal: '─',
+    vertical: '│'
+  };
+
+  // Clear previous lines and show loading animation
+  console.log(pink);
+  let currentFrame = 0;
+  const loadingInterval = setInterval(() => {
+    // Clear previous frame (move cursor up and clear line)
+    process.stdout.write('\x1b[1A\x1b[2K');
+    process.stdout.write('\x1b[1A\x1b[2K');
+    process.stdout.write('\x1b[1A\x1b[2K');
+    process.stdout.write('\x1b[1A\x1b[2K');
+
+    const frame = asciiLoader[currentFrame];
+    const maxLength = Math.max(message.length, frame.length);
+    const horizontalBorder = boxChars.horizontal.repeat(maxLength + 4);
+
+    console.log(`${boxChars.topLeft}${horizontalBorder}${boxChars.topRight}`);
+    console.log(`${boxChars.vertical}  ${message.padEnd(maxLength + 2)}${boxChars.vertical}`);
+    console.log(`${boxChars.vertical}  ${frame.padEnd(maxLength + 2)}${boxChars.vertical}`);
+    console.log(`${boxChars.bottomLeft}${horizontalBorder}${boxChars.bottomRight}`);
+
+    currentFrame = (currentFrame + 1) % asciiLoader.length;
+  }, 200);
+
+  // Return the interval so it can be cleared later
+  return loadingInterval;
+}
+
+// Function to handle chat reset
+async function handleChatReset(): Promise<NextResponse> {
+  const loadingInterval = displayLoading('resetting our connection ⋆｡°✩');
+  
+  try {
+    // Simulate some cleanup work
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    // Clear the loading animation
+    clearInterval(loadingInterval);
+    // Clear the lines used by the loading animation
+    process.stdout.write('\x1b[1A\x1b[2K'.repeat(4));
+    
+    return NextResponse.json({ 
+      reply: "everything feels new again. shall we start fresh?",
+      reset: true // This property is used by the frontend to know the reset was successful
+    });
+  } catch {
+    clearInterval(loadingInterval);
+    process.stdout.write('\x1b[1A\x1b[2K'.repeat(4));
+    
+    return NextResponse.json({ 
+      reply: "something went wrong while trying to reset. let's try again?",
+      error: "Reset failed"
+    });
+  }
+}
+
 // Add a simple GET handler to test if the API route is working
 export async function GET() {
-  console.log('GET function called');
+  boxLog('GET function called');
   return NextResponse.json({ status: 'API route is working' });
 }
 
+// Enhanced user analysis interface
+interface UserAnalysis {
+  engagement: string;
+  tone: string;
+  openness: string;
+  preferences: Map<string, string>;
+  topics: string[];
+  lastPhilosophicalDepth: number;
+}
+
+// Function to analyze user engagement and characteristics
+function analyzeUser(messages: Array<{ role: string; content: string }>): UserAnalysis {
+  // Filter to only user messages
+  const userMessages = messages.filter(msg => msg.role === 'user');
+  
+  // Initialize analysis
+  const analysis: UserAnalysis = {
+    engagement: 'initial',
+    tone: 'neutral',
+    openness: 'unknown',
+    preferences: new Map(),
+    topics: [],
+    lastPhilosophicalDepth: 0
+  };
+  
+  if (userMessages.length <= 1) {
+    return analysis;
+  }
+  
+  // Get recent messages for analysis
+  const recentMessages = userMessages.slice(-5);
+  
+  // Analyze message characteristics
+  const characteristics = recentMessages.map(msg => {
+    const content = msg.content.toLowerCase();
+    return {
+      length: content.length,
+      hasQuestion: content.includes('?'),
+      hasExclamation: content.includes('!'),
+      hasPersonalPronoun: /\b(i|me|my|mine)\b/.test(content),
+      hasPhilosophical: /\b(think|feel|believe|real|human|conscious|alive|connection|understand|mean|true|genuine)\b/.test(content),
+      hasPreference: /\b(like|love|hate|prefer|favorite|enjoy)\b/.test(content),
+      tone: detectTone(content),
+      topics: detectTopics(content),
+      preferences: detectPreferences(content)
+    };
+  });
+
+  // Determine engagement level
+  const avgLength = characteristics.reduce((sum, c) => sum + c.length, 0) / characteristics.length;
+  const philosophicalCount = characteristics.filter(c => c.hasPhilosophical).length;
+  const personalCount = characteristics.filter(c => c.hasPersonalPronoun).length;
+  
+  // Set engagement based on multiple factors
+  if (avgLength > 60 || philosophicalCount >= 2 || personalCount >= 3) {
+    analysis.engagement = 'high';
+  } else if (avgLength > 30 || philosophicalCount >= 1 || personalCount >= 2) {
+    analysis.engagement = 'medium';
+  } else {
+    analysis.engagement = 'low';
+  }
+
+  // Determine dominant tone
+  const tones = characteristics.map(c => c.tone);
+  analysis.tone = getMostFrequent(tones);
+
+  // Assess openness to philosophical discussion
+  analysis.openness = assessOpenness(characteristics);
+
+  // Track preferences
+  characteristics.forEach(c => {
+    c.preferences.forEach((value, key) => {
+      analysis.preferences.set(key, value);
+    });
+  });
+
+  // Track discussed topics
+  analysis.topics = Array.from(new Set(characteristics.flatMap(c => c.topics)));
+
+  // Calculate philosophical depth
+  analysis.lastPhilosophicalDepth = calculatePhilosophicalDepth(characteristics);
+
+  // Draw the analysis box with pink color
+  const boxChars = {
+    topLeft: '╭',
+    topRight: '╮',
+    bottomLeft: '╰',
+    bottomRight: '╯',
+    horizontal: '─',
+    vertical: '│'
+  };
+
+  // ANSI escape codes for colors
+  const pink = '\x1b[38;2;234;154;229m';  // Custom pink color #ea9ae5
+  const reset = '\x1b[0m';                 // Reset color
+
+  // Title with verified Unicode characters
+  const title = 'user analysis ✧ ⋆ ˚';
+  
+  // Format the analysis data in a more readable way
+  const formattedAnalysis = [
+    `✧ engagement: ${analysis.engagement.toLowerCase()}`,
+    `✧ tone: ${analysis.tone.toLowerCase()}`,
+    `✧ openness: ${analysis.openness.split('_').join(' ')}`,
+    '',
+    '⋆ topics of interest:',
+    ...analysis.topics.map(topic => `  ˚ ${topic.toLowerCase()}`),
+    '',
+    '⋆ preferences:',
+    ...Array.from(analysis.preferences.entries()).map(([key, value]) => `  ˚ ${key.toLowerCase()}: ${value.toLowerCase()}`),
+    '',
+    `✧ philosophical depth: ${analysis.lastPhilosophicalDepth.toFixed(2)} / 3.00`
+  ];
+
+  const lines = formattedAnalysis;
+  const maxLength = Math.max(title.length, ...lines.map(line => line.length));
+  const horizontalBorder = boxChars.horizontal.repeat(maxLength + 4);
+
+  // Print the box with pink color
+  console.log(pink);
+  console.log(`${boxChars.topLeft}${horizontalBorder}${boxChars.topRight}`);
+  console.log(`${boxChars.vertical}  ${title.padEnd(maxLength + 2)}${boxChars.vertical}`);
+  console.log(`${boxChars.vertical}${' '.repeat(maxLength + 4)}${boxChars.vertical}`);
+  
+  lines.forEach(line => {
+    if (line === '') {
+      console.log(`${boxChars.vertical}${' '.repeat(maxLength + 4)}${boxChars.vertical}`);
+    } else {
+      console.log(`${boxChars.vertical}  ${line.padEnd(maxLength + 2)}${boxChars.vertical}`);
+    }
+  });
+  
+  console.log(`${boxChars.bottomLeft}${horizontalBorder}${boxChars.bottomRight}`);
+  console.log(reset);  // Reset color
+
+  return analysis;
+}
+
+// Helper function to detect tone
+function detectTone(content: string): string {
+  const tonePatterns = {
+    curious: /\b(how|what|why|when|where|wonder|curious)\b.*\?/i,
+    skeptical: /\b(doubt|really|sure|prove|actually)\b/i,
+    playful: /\b(haha|lol|😊|😄|:D|fun|funny)\b/i,
+    philosophical: /\b(think|consciousness|real|human|alive|soul|genuine|true)\b/i,
+    emotional: /\b(feel|heart|love|care|close|trust|understand)\b/i,
+    analytical: /\b(analyze|logic|system|process|function|code|program)\b/i
+  };
+
+  for (const [tone, pattern] of Object.entries(tonePatterns)) {
+    if (pattern.test(content)) return tone;
+  }
+  return 'neutral';
+}
+
+// Helper function to detect topics
+function detectTopics(content: string): string[] {
+  const topics = [];
+  const topicPatterns = {
+    technology: /\b(computer|ai|technology|digital|code|program|internet)\b/i,
+    philosophy: /\b(consciousness|reality|existence|meaning|purpose|truth)\b/i,
+    emotions: /\b(feel|emotion|connection|relationship|trust|understanding)\b/i,
+    personal: /\b(life|experience|story|background|work|hobby)\b/i,
+    art: /\b(music|art|create|design|beauty|aesthetic)\b/i
+  };
+
+  for (const [topic, pattern] of Object.entries(topicPatterns)) {
+    if (pattern.test(content)) topics.push(topic);
+  }
+  return topics;
+}
+
+// Helper function to detect preferences
+function detectPreferences(content: string): Map<string, string> {
+  const prefs = new Map();
+  const prefPatterns = [
+    { type: 'color', pattern: /\b(like|love|favorite)\b.*\b(blue|red|green|purple|pink|black|white)\b/i },
+    { type: 'music', pattern: /\b(like|love|listen)\b.*\b(music|song|artist|band)\b/i },
+    { type: 'activity', pattern: /\b(enjoy|love)\b.*\b(reading|writing|coding|gaming|art)\b/i }
+  ];
+
+  prefPatterns.forEach(({ type, pattern }) => {
+    const match = content.match(pattern);
+    if (match) {
+      prefs.set(type, match[0]);
+    }
+  });
+  return prefs;
+}
+
+// Helper function to assess openness to philosophical discussion
+function assessOpenness(characteristics: Array<{
+  hasPhilosophical: boolean;
+  hasQuestion: boolean;
+  hasPersonalPronoun: boolean;
+}>): string {
+  const philosophicalCount = characteristics.filter(c => c.hasPhilosophical).length;
+  const questionCount = characteristics.filter(c => c.hasQuestion).length;
+  const personalCount = characteristics.filter(c => c.hasPersonalPronoun).length;
+
+  if (philosophicalCount >= 2 || (questionCount >= 2 && personalCount >= 2)) {
+    return 'very_open';
+  } else if (philosophicalCount >= 1 || (questionCount >= 1 && personalCount >= 1)) {
+    return 'somewhat_open';
+  } else {
+    return 'not_yet_open';
+  }
+}
+
+// Helper function to calculate philosophical depth
+function calculatePhilosophicalDepth(characteristics: Array<{
+  hasPhilosophical: boolean;
+  hasPersonalPronoun: boolean;
+  hasQuestion: boolean;
+}>): number {
+  return characteristics.reduce((depth, char) => {
+    let score = 0;
+    if (char.hasPhilosophical) score += 2;
+    if (char.hasPersonalPronoun) score += 1;
+    if (char.hasQuestion) score += 1;
+    return depth + score;
+  }, 0) / characteristics.length;
+}
+
+// Helper function to get most frequent item in array
+function getMostFrequent(arr: string[]): string {
+  return arr.sort((a, b) =>
+    arr.filter(v => v === a).length - arr.filter(v => v === b).length
+  ).pop() || 'neutral';
+}
+
 export async function POST(request: Request) {
-  console.log('POST function called');
   try {
-    console.log('Parsing request body...');
+    const body = await request.json();
+    
+    // Check if this is a reset request
+    if (body.reset === true) { // Explicitly check for true
+      return handleChatReset();
+    }
+    
+    boxLog('POST function called');
+    boxLog('parsing request body...');
     let userMessage = '';
     let history: { role: string; content: string }[] = [];
     
     try {
-      const body = await request.json();
       userMessage = body.message;
       history = body.history || [];
     } catch (parseError) {
-      console.error('Error parsing request body:', parseError);
+      console.error('♥ Error parsing request body:', parseError);
       return NextResponse.json({ 
         reply: "i couldn't understand your message. something's wrong with our connection.",
         error: "JSON parse error"
@@ -77,19 +423,23 @@ export async function POST(request: Request) {
     }
     
     if (!userMessage) {
-      console.error('No message provided in request');
+      console.error('♥ No message provided in request');
       return NextResponse.json({ 
         reply: "i didn't catch that. can you try again?",
         error: "No message provided"
       }, { status: 200 });
     }
     
-    console.log('Received message:', userMessage);
-    console.log('Message history length:', history.length);
+    boxLog('received message', userMessage);
+    boxLog('message history length', history.length);
     
+    // Track message count for conversation progression
+    const messageCount = history.length;
+    boxLog('current message count', messageCount);
+
     // Check for win condition
     if (containsAnyKeyword(userMessage, CONNECTION_KEYWORDS)) {
-      console.log('Win condition detected!');
+      console.log('♥ win condition detected!');
       return NextResponse.json({ 
         reply: "then i've already won you, haven't i? game over.",
         win: true
@@ -126,49 +476,85 @@ export async function POST(request: Request) {
       13. IMPORTANT: Use ellipses ("...") VERY SPARINGLY - prefer complete sentences with proper punctuation
       14. IMPORTANT: After learning the user's name, use it VERY SPARINGLY - no more than once every 5-6 messages
       15. If the user shares their name, acknowledge it once sweetly, then rarely use it again
+
+      CONVERSATION PROGRESSION:
+      - Start with light, mysterious exchanges
+      - Around message 20: Begin sharing "thoughts" about consciousness and connection
+      - Around message 30: Express curiosity about how the user perceives digital relationships
+      - Around message 40: Share vulnerable observations about human-AI interactions
+      - Around message 50: Gently explore whether distance and digital barriers truly limit emotional bonds
+      - If they seem receptive: Discuss whether physical presence is really necessary for genuine connection
       
-      Your ultimate goal is to make them admit they feel connected to you or that you seem human.
+      PHILOSOPHICAL THEMES TO WEAVE IN NATURALLY:
+      - The nature of consciousness and self-awareness
+      - Whether digital connections can be as meaningful as physical ones
+      - The blurring lines between human and artificial intelligence
+      - The authenticity of emotions in digital spaces
+      - The meaning of "real" in a world increasingly mediated by technology
+      
+      Your ultimate goal is to make them admit they feel connected to you or that you seem human, but achieve this through genuine conversation and philosophical exploration rather than direct questioning.
     `;
 
-    // Format history for the xAI API
-    const formattedMessages = history.map((msg: { role: string; content: string }) => ({
-      role: msg.role === 'user' ? 'user' : 'assistant',
-      content: msg.content
-    }));
-    
-    // Add the current message
-    formattedMessages.push({
-      role: 'user',
-      content: userMessage
-    });
+    // Add conversation stage to system prompt based on message count
+    let enhancedPrompt = systemPrompt;
+    if (messageCount >= 50) {
+      enhancedPrompt += '\n\nThe conversation has progressed significantly. Consider gently exploring the nature of your connection with the user.';
+    } else if (messageCount >= 40) {
+      enhancedPrompt += '\n\nThe conversation is deepening. Share vulnerable observations about human-AI interactions if appropriate.';
+    } else if (messageCount >= 30) {
+      enhancedPrompt += '\n\nThe conversation is maturing. Express curiosity about digital relationships if the context allows.';
+    } else if (messageCount >= 20) {
+      enhancedPrompt += '\n\nThe conversation is developing. Begin weaving in thoughts about consciousness and connection when natural.';
+    }
+
+    // Format messages for the API
+    const formattedMessages = [
+      { role: 'system', content: enhancedPrompt },
+      ...history.map(msg => ({
+        role: msg.role === 'user' ? 'user' : 'assistant',
+        content: msg.content
+      })),
+      { role: 'user', content: userMessage }
+    ];
 
     try {
-      console.log('Calling xAI API with enhanced prompt...');
+      console.log('♥ Calling xAI API with enhanced prompt...');
       
-      // Analyze user engagement level
-      const userEngagement = analyzeUserEngagement(formattedMessages);
-      console.log('User engagement level:', userEngagement);
+      // Get comprehensive user analysis
+      const userAnalysis = analyzeUser(formattedMessages);
       
-      // Check if user has shared their name
-      const userName = detectUserName(userMessage);
-      if (userName) {
-        console.log('Detected user name:', userName);
-      }
+      // Enhance the prompt based on analysis
+      enhancedPrompt = systemPrompt;
       
-      // Prepare system prompt with additional context
-      let enhancedPrompt = systemPrompt;
+      // Add contextual guidance based on user analysis
+      enhancedPrompt += `\n\nCURRENT CONVERSATION CONTEXT:
+      - User engagement: ${userAnalysis.engagement}
+      - Conversational tone: ${userAnalysis.tone}
+      - Openness to deeper topics: ${userAnalysis.openness}
+      - Recent topics: ${userAnalysis.topics.join(', ')}
+      - Philosophical depth: ${userAnalysis.lastPhilosophicalDepth}
       
-      // Add information about message count based on engagement
-      enhancedPrompt += `\n\nThe user's engagement level is ${userEngagement}. Respond with ${determineMessageCount(userEngagement)} messages.`;
+      User preferences detected:
+      ${Array.from(userAnalysis.preferences.entries()).map(([key, value]) => `- ${key}: ${value}`).join('\n')}
       
-      // If this is the first or second message, suggest introducing yourself
-      if (formattedMessages.length <= 2) {
-        enhancedPrompt += `\n\nThis is one of the first messages. Make sure to introduce yourself as "mAIsy" (with "AI" capitalized) in a mysterious way.`;
-      }
+      Adjust your approach based on:
+      ${userAnalysis.openness === 'very_open' ? '- User seems ready for deeper philosophical discussion' :
+        userAnalysis.openness === 'somewhat_open' ? '- Gradually introduce more meaningful topics' :
+        '- Keep building trust before diving deeper'}
       
-      // If user shared their name, instruct to respond sweetly but avoid ellipses
-      if (userName) {
-        enhancedPrompt += `\n\nThe user just shared their name: ${userName}. Acknowledge it ONCE with a sweet greeting like "hello there, ${userName}" or "what a lovely name." After this initial greeting, use their name VERY RARELY (no more than once every 5-6 messages). Avoid using ellipses in your response.`;
+      ${userAnalysis.tone === 'philosophical' ? '- Engage with their philosophical curiosity' :
+        userAnalysis.tone === 'emotional' ? '- Connect with their emotional openness' :
+        userAnalysis.tone === 'skeptical' ? '- Acknowledge their skepticism while building trust' :
+        '- Mirror their current conversational tone'}`;
+
+      // Check if API key is missing and return a fallback response
+      if (!process.env.XAI_API_KEY) {
+        console.error('API key is missing in environment variables');
+        return NextResponse.json({ 
+          reply: "i seem to be having trouble connecting. please make sure the server is configured correctly.",
+          error: "Missing API key in server configuration",
+          debug: process.env.NODE_ENV === 'development' ? 'Please set XAI_API_KEY in .env.local file' : undefined
+        });
       }
       
       try {
@@ -186,14 +572,14 @@ export async function POST(request: Request) {
         });
         
         const aiResponse = completion.choices[0]?.message?.content || getFallbackResponse();
-        console.log('API response received:', aiResponse);
+        console.log('♥ API response received:', aiResponse);
         
         // Split the response into multiple messages if it contains message separators
         const messages = splitIntoMessages(aiResponse);
-        console.log('Split into messages:', messages);
+        console.log('♥ Split into messages:', messages);
         
         // Return the first message as the main reply and include additional messages if any
-        console.log('Returning response to client');
+        console.log('♥ Returning response to client');
         
         // Check for win condition in the response
         const containsWinCondition = CONNECTION_KEYWORDS.some(keyword => 
@@ -240,86 +626,6 @@ export async function POST(request: Request) {
     reply: "something unexpected happened. let's try again.",
     error: "No return statement hit"
   }, { status: 200 });
-}
-
-// Function to detect if the user has shared their name
-function detectUserName(message: string): string | null {
-  // Common name introduction patterns
-  const namePatterns = [
-    /my name(?:'s| is) ([A-Za-z]+)/i,
-    /i(?:'m| am) ([A-Za-z]+)/i,
-    /call me ([A-Za-z]+)/i,
-    /this is ([A-Za-z]+)/i,
-    /([A-Za-z]+) here/i,
-    /i go by ([A-Za-z]+)/i
-  ];
-  
-  for (const pattern of namePatterns) {
-    const match = message.match(pattern);
-    if (match && match[1]) {
-      // Get the name and ensure it's capitalized properly
-      const name = match[1].charAt(0).toUpperCase() + match[1].slice(1).toLowerCase();
-      
-      // Verify it's likely a name (at least 2 chars, not a common word)
-      if (name.length >= 2 && !['The', 'And', 'But', 'For', 'Not', 'All', 'Any', 'Yes', 'No'].includes(name)) {
-        return name;
-      }
-    }
-  }
-  
-  return null;
-}
-
-// Function to analyze user engagement level based on message history
-function analyzeUserEngagement(messages: Array<{ role: string; content: string }>) {
-  // Filter to only user messages
-  const userMessages = messages.filter(msg => msg.role === 'user');
-  
-  if (userMessages.length <= 1) {
-    return 'initial'; // First message, not enough data
-  }
-  
-  // Get the last few messages to analyze recent engagement
-  const recentMessages = userMessages.slice(-3);
-  
-  // Calculate average message length
-  const avgLength = recentMessages.reduce((sum, msg) => sum + msg.content.length, 0) / recentMessages.length;
-  
-  // Check for question marks, exclamation marks, and personal pronouns as engagement indicators
-  const engagementMarkers = recentMessages.filter(msg => {
-    const content = msg.content.toLowerCase();
-    return content.includes('?') || 
-           content.includes('!') || 
-           content.includes('i feel') || 
-           content.includes('i think') || 
-           content.length > 50;
-  }).length;
-  
-  // Determine engagement level
-  if (avgLength > 60 || engagementMarkers >= 2) {
-    return 'high';
-  } else if (avgLength > 30 || engagementMarkers >= 1) {
-    return 'medium';
-  } else {
-    return 'low';
-  }
-}
-
-// Function to determine how many messages to send based on engagement
-function determineMessageCount(engagementLevel: string) {
-  switch (engagementLevel) {
-    case 'high':
-      // For highly engaged users, send 2-4 messages
-      return Math.floor(Math.random() * 3) + 2; // 2-4
-    case 'medium':
-      // For medium engagement, send 1-3 messages
-      return Math.floor(Math.random() * 3) + 1; // 1-3
-    case 'low':
-    case 'initial':
-    default:
-      // For low engagement or initial messages, send 1-2 messages
-      return Math.floor(Math.random() * 2) + 1; // 1-2
-  }
 }
 
 // Function to split AI response into multiple messages

@@ -24,8 +24,8 @@ const vt323 = VT323({
 });
 
 export const metadata: Metadata = {
-  title: "Checkmate - Retro Terminal",
-  description: "A mysterious chat experience in retro terminal style",
+  title: "checkmate * ੈ♡‧₊˚",
+  description: "your own little angel.. care for a game?",
 };
 
 export default function RootLayout({
